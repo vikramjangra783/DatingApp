@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using DatingApp.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using DatingApp.API.Dtos;
+using DatingApp.API.Models;
 
 namespace DatingApp.API.Controllers
 {
@@ -15,9 +18,15 @@ namespace DatingApp.API.Controllers
     public class ValuesController : ControllerBase
     {
         private readonly DataContext dbContext;
-        public ValuesController(DataContext dbContext)
+
+         private readonly IAuthRepository repository;
+        private readonly IConfiguration configuration;
+
+        public ValuesController(DataContext dbContext,IAuthRepository repo, IConfiguration config)
         {
             this.dbContext = dbContext;
+            this.repository = repo;
+            this.configuration = config;
         }
         // GET api/values
         [HttpGet]
@@ -37,10 +46,10 @@ namespace DatingApp.API.Controllers
         }
 
         // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
+        // [HttpPost]
+        // public void Post([FromBody] string value)
+        // {
+        // }
 
         // PUT api/values/5
         [HttpPut("{id}")]
@@ -52,6 +61,26 @@ namespace DatingApp.API.Controllers
         [HttpDelete("{id}")]
         public void Delete(int id)
         {
+        }
+
+         [HttpPost("register")]
+         [AllowAnonymous]
+        private async Task<IActionResult> PostRegister(UserForRegistrationDto user)
+        {
+            user.Username = user.Username.ToLower();
+            if (await this.repository.UserExists(user.Username))
+            {
+                return BadRequest("Username already exists");
+            }
+
+            var userToCreate = new User()
+            {
+                UserName = user.Username
+            };
+
+            var createdUser = await this.repository.Register(userToCreate, user.Password);
+
+            return StatusCode(201);
         }
     }
 }
